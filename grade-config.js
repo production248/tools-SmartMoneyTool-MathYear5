@@ -1,0 +1,1 @@
+﻿window.MONEY_TOOL_GRADE = 5;
