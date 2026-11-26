@@ -12,6 +12,8 @@ const I18N = {
   subtitle: ml("Alat manipulatif Tahun 2–6 untuk SK dan SJK.", "配合 SK 与 SJK 二至六年级课本的操作工具。", "Hands-on Year 2–6 tools for SK and SJK."),
   soundOn: ml("Bunyi: Buka", "声音：开", "Sound: On"),
   soundOff: ml("Bunyi: Tutup", "声音：关", "Sound: Off"),
+  fullscreen: ml("Skrin penuh", "全屏", "Full screen"),
+  exitFullscreen: ml("Keluar penuh", "退出全屏", "Exit full screen"),
   tabMoney: ml("Kenal & Bina", "认识与组合", "Recognise & Build"),
   tabSpend: ml("Bayar", "付款", "Pay"),
   tabManage: ml("Urus Wang", "管理金钱", "Manage Money"),
@@ -64,6 +66,21 @@ const GRADE_MODES = {
   6: { money: [], spend: ["shopLab", "offerLab", "documents"], manage: ["balanceSheet", "interestDividend", "insurance"] },
 };
 const MODE_LABELS = { money: I18N.tabMoney, spend: I18N.tabSpend, manage: I18N.tabManage };
+const ACTIVITY_ICONS = {
+  identify: "assets/activity-icons/identify.png",
+  compose: "assets/activity-icons/compose.png",
+  operationMat: "assets/activity-icons/operation-mat.png",
+  pay: "assets/activity-icons/pay.png",
+  savingPlan: "assets/activity-icons/saving-plan.png",
+  budget: "assets/activity-icons/budget.png"
+};
+const ACTIVITY_SYMBOLS = {
+  foreign: "🌍", needWant: "🛍️", ledger: "📒", decision: "🧭",
+  paymentMethods: "💳", operationMachine: "🧮", saveInvest: "🌱",
+  simpleCompound: "📈", creditDebt: "⚖️", shopLab: "🏪",
+  offerLab: "🧾", documents: "📄", balanceSheet: "⚖️",
+  interestDividend: "💹", insurance: "🛡️"
+};
 
 const MONEY = [
   { id: "rm100", value: 10000, label: "RM100", kind: "note", image: "assets/rm100.png" },
@@ -97,6 +114,7 @@ const SHOP_PRODUCTS = [
 ];
 
 const els = {
+  activityTabs: document.querySelector("#activityTabs"), fullscreen: document.querySelector("#fullscreenToggle"), soundIcon: document.querySelector("#soundIcon"),
   grade: document.querySelector("#gradeSelect"), activity: document.querySelector("#activitySelect"), sideTitle: document.querySelector("#sideTitle"),
   scope: document.querySelector("#scopeNote"), tip: document.querySelector("#tipBox span:last-child"), title: document.querySelector("#activityTitle"),
   badge: document.querySelector("#gradeBadge"), challenge: document.querySelector("#challengePanel"), stage: document.querySelector("#visualStage"),
@@ -144,7 +162,14 @@ function applyStaticLanguage() {
   document.documentElement.lang = state.lang === "zh" ? "zh-Hans" : state.lang;
   document.querySelectorAll("[data-i18n]").forEach(el => { if (I18N[el.dataset.i18n]) el.textContent = tr(el.dataset.i18n); });
   els.sound.querySelector("span:last-child").textContent = tr(state.sound ? "soundOn" : "soundOff");
-  document.querySelectorAll("[data-lang]").forEach(button => button.classList.toggle("active", button.dataset.lang === state.lang));
+  els.soundIcon.src = state.sound ? "assets/ui-icons/sound-on.png" : "assets/ui-icons/sound-off.png";
+  els.sound.setAttribute("aria-label", tr(state.sound ? "soundOn" : "soundOff"));
+  updateFullscreenButton();
+  document.querySelectorAll("[data-lang]").forEach(button => {
+    const active = button.dataset.lang === state.lang;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
   [...els.grade.options].forEach((option, index) => { option.textContent = gradeName(index + 2); });
   els.grade.value = String(state.grade);
   gradeLabel.hidden = Boolean(configuredGrade);
@@ -155,12 +180,57 @@ function applyStaticLanguage() {
   }
 }
 
+function updateFullscreenButton() {
+  const fullscreen = Boolean(document.fullscreenElement);
+  const label = tr(fullscreen ? "exitFullscreen" : "fullscreen");
+  els.fullscreen.querySelector("span:last-child").textContent = label;
+  els.fullscreen.setAttribute("aria-pressed", String(fullscreen));
+  els.fullscreen.setAttribute("aria-label", label);
+}
+
 function refreshNavigation({ keepActivity = false } = {}) {
   const modes = GRADE_MODES[state.grade];
   if (!modes[state.mode]?.length) state.mode = Object.keys(modes).find(mode => modes[mode].length);
-  document.querySelectorAll("[data-mode]").forEach(button => { button.disabled = !modes[button.dataset.mode]?.length; button.classList.toggle("active", button.dataset.mode === state.mode); });
+  document.querySelectorAll("[data-mode]").forEach(button => {
+    const active = button.dataset.mode === state.mode;
+    button.disabled = !modes[button.dataset.mode]?.length;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
   const list = modes[state.mode]; if (!keepActivity || !list.includes(state.activity)) state.activity = list[0];
   els.activity.replaceChildren(...list.map(id => Object.assign(document.createElement("option"), { value: id, textContent: loc(ACTIVITIES[id].label) })));
+  els.activityTabs.replaceChildren(...list.map(id => {
+    const button = document.createElement("button");
+    const visual = document.createElement(ACTIVITY_ICONS[id] ? "img" : "span");
+    const label = document.createElement("span");
+    const active = id === state.activity;
+    button.type = "button";
+    button.className = `activity-tab${active ? " active" : ""}`;
+    button.dataset.activity = id;
+    button.setAttribute("aria-pressed", String(active));
+    visual.setAttribute("aria-hidden", "true");
+    if (ACTIVITY_ICONS[id]) {
+      visual.className = "activity-icon";
+      visual.src = ACTIVITY_ICONS[id];
+      visual.alt = "";
+      visual.width = 44;
+      visual.height = 44;
+      visual.draggable = false;
+    } else {
+      visual.className = "activity-glyph";
+      visual.textContent = ACTIVITY_SYMBOLS[id] || "💰";
+    }
+    label.textContent = loc(ACTIVITIES[id].label);
+    button.append(visual, label);
+    button.addEventListener("click", () => {
+      if (id === state.activity) return;
+      state.activity = id;
+      state.tool = null;
+      beep();
+      startTool();
+    });
+    return button;
+  }));
   els.activity.value = state.activity; els.sideTitle.textContent = loc(MODE_LABELS[state.mode]); els.scope.textContent = loc(ACTIVITIES[state.activity].scope);
   els.tip.textContent = loc(ACTIVITIES[state.activity].tip); els.title.textContent = loc(ACTIVITIES[state.activity].label);
   els.badge.textContent = configuredGrade
@@ -723,6 +793,14 @@ els.grade.addEventListener("change", () => { if (configuredGrade) return; state.
 els.activity.addEventListener("change", () => { state.activity = els.activity.value; state.tool = null; beep(); refreshNavigation({ keepActivity: true }); startTool(); });
 els.reset.addEventListener("click", () => { state.tool = defaults(state.activity); beep(); renderTool(); });
 els.sound.addEventListener("click", () => { state.sound = !state.sound; els.sound.setAttribute("aria-pressed", String(state.sound)); applyStaticLanguage(); if (state.sound) beep("done"); });
+els.fullscreen.addEventListener("click", async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  } catch { /* Fullscreen may be blocked by the browser or embedder. */ }
+  updateFullscreenButton();
+});
+document.addEventListener("fullscreenchange", updateFullscreenButton);
 els.teacher.addEventListener("click", () => { els.ringgit.value = Math.floor(state.teacherAmount / 100); els.sen.value = state.teacherAmount % 100; updateTeacherPreview(); els.dialog.showModal(); beep(); });
 [els.ringgit, els.sen].forEach(input => input.addEventListener("input", updateTeacherPreview)); els.useSettings.addEventListener("click", applyTeacherSettings);
 els.controls.addEventListener("input", event => {

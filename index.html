@@ -3,14 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#ffd66f">
+  <meta name="theme-color" content="#ffc129">
   <meta name="description" content="Alat interaktif wang Malaysia untuk murid Matematik Tahun 5.">
   <title>Smart Money Tool - Math Year 5</title>
   <link rel="icon" type="image/png" href="edcloud-app-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Noto+Sans+SC:wght@500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="preload" href="assets/ui-icons/sound-off.png" as="image" type="image/png">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <section class="auth-gate" id="authGate" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="authTitle">
@@ -24,7 +22,7 @@
   <div class="page-shell" hidden>
     <header class="topbar">
       <div class="brand">
-        <div class="brand-icon" aria-hidden="true">🪙</div>
+        <img class="brand-icon" src="edcloud-app-icon.png" alt="" aria-hidden="true" draggable="false">
         <div>
           <h1 data-i18n="title">Jom Kenali Wang!</h1>
           <p data-i18n="subtitle">Kenal, susun dan urus wang dengan bijak.</p>
@@ -32,74 +30,69 @@
       </div>
 
       <div class="top-actions">
+        <button id="fullscreenToggle" class="fullscreen-button" type="button" aria-pressed="false">
+          <span aria-hidden="true">⛶</span>
+          <span data-i18n="fullscreen">Skrin penuh</span>
+        </button>
         <button id="soundToggle" class="sound-button" type="button" aria-pressed="true">
-          <span aria-hidden="true">🔊</span>
-          <span data-i18n="soundOn">Bunyi: Buka</span>
+          <img id="soundIcon" class="sound-icon" src="assets/ui-icons/sound-on.png" width="28" height="28" alt="" aria-hidden="true" draggable="false">
+          <span data-i18n="soundOn">Bunyi</span>
         </button>
         <div class="language-switch" role="group" aria-label="Language">
-          <button type="button" data-lang="ms" class="active">BM</button>
-          <button type="button" data-lang="zh">中文</button>
-          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="ms" class="language-btn active" aria-pressed="true">BM</button>
+          <button type="button" data-lang="zh" class="language-btn" aria-pressed="false">中文</button>
+          <button type="button" data-lang="en" class="language-btn" aria-pressed="false">EN</button>
         </div>
       </div>
     </header>
 
-    <nav class="mode-tabs" aria-label="Aktiviti utama">
-      <button type="button" data-mode="money" class="active"><span>💵</span><span data-i18n="tabMoney">Kenal &amp; Bina</span></button>
-      <button type="button" data-mode="spend"><span>🛒</span><span data-i18n="tabSpend">Bayar &amp; Belanja</span></button>
-      <button type="button" data-mode="manage"><span>🐷</span><span data-i18n="tabManage">Urus Wang</span></button>
+    <nav class="mode-tabs" id="modeTabs" aria-label="Aktiviti utama">
+      <button type="button" data-mode="money" class="active" aria-pressed="true"><img class="mode-icon" src="assets/activity-icons/identify.png" width="52" height="52" alt="" aria-hidden="true" draggable="false"><span data-i18n="tabMoney">Kenal &amp; Bina</span></button>
+      <button type="button" data-mode="spend" aria-pressed="false"><img class="mode-icon" src="assets/activity-icons/pay.png" width="52" height="52" alt="" aria-hidden="true" draggable="false"><span data-i18n="tabSpend">Bayar</span></button>
+      <button type="button" data-mode="manage" aria-pressed="false"><img class="mode-icon" src="assets/activity-icons/budget.png" width="52" height="52" alt="" aria-hidden="true" draggable="false"><span data-i18n="tabManage">Urus Wang</span></button>
     </nav>
 
+    <nav class="activity-tabs" id="activityTabs" aria-label="Aktiviti wang"></nav>
+
     <main class="workspace">
-      <aside class="control-card">
-        <div class="eyebrow" data-i18n="chooseActivity">Pilih aktiviti</div>
-        <h2 id="sideTitle">Kenal &amp; Bina</h2>
-        <div class="divider"></div>
-
-        <label for="gradeSelect" data-i18n="grade">Tahun</label>
-        <select id="gradeSelect">
-          <option value="2">Tahun 2</option>
-          <option value="3">Tahun 3</option>
-          <option value="4">Tahun 4</option>
-          <option value="5">Tahun 5</option>
-          <option value="6">Tahun 6</option>
-        </select>
-
-        <label for="activitySelect" data-i18n="activity">Aktiviti</label>
-        <select id="activitySelect"></select>
-
-        <div id="scopeNote" class="scope-note"></div>
-        <div id="tipBox" class="tip-box"><span aria-hidden="true">☝️</span><span></span></div>
-
-        <div class="side-spacer"></div>
-        <button id="teacherButton" class="teacher-button" type="button">👩‍🏫 <span data-i18n="teacherMode">Tetapan guru</span></button>
-        <button id="resetToolButton" class="secondary-button" type="button">↻ <span data-i18n="resetTool">Tetapkan semula alat</span></button>
-      </aside>
-
       <section class="activity-card" aria-live="polite">
         <div class="activity-heading">
           <div>
             <div class="eyebrow" data-i18n="tryIt">Mari cuba!</div>
             <h2 id="activityTitle"></h2>
           </div>
-          <div class="heading-actions"><span id="gradeBadge" class="grade-badge">T2</span></div>
+          <div class="heading-actions">
+            <span id="gradeBadge" class="grade-badge">Matematik Tahun 5</span>
+            <button id="teacherButton" class="teacher-button compact" type="button">👩‍🏫 <span data-i18n="teacherMode">Tetapan guru</span></button>
+            <button id="resetToolButton" class="secondary-button compact" type="button">↻ <span data-i18n="resetTool">Tetapkan semula alat</span></button>
+          </div>
         </div>
 
         <div id="challengePanel" class="challenge-panel"></div>
         <div id="visualStage" class="visual-stage"></div>
         <div id="controlArea" class="control-area"></div>
-        <div id="liveSummary" class="feedback neutral" role="status"></div>
+        <div id="liveSummary" class="feedback neutral" role="status" hidden></div>
       </section>
     </main>
 
-    <div class="steps" aria-label="Langkah aktiviti">
-      <div><b>1</b><span data-i18n="stepObserve">Perhatikan</span></div>
-      <div><b>2</b><span data-i18n="stepTry">Gerakkan &amp; cuba</span></div>
-      <div><b>3</b><span data-i18n="stepCheck">Lihat perubahan</span></div>
+    <div class="compat-controls" hidden aria-hidden="true">
+      <h2 id="sideTitle">Kenal &amp; Bina</h2>
+      <label for="gradeSelect" data-i18n="grade">Tahun</label>
+      <select id="gradeSelect">
+        <option value="2">Tahun 2</option>
+        <option value="3">Tahun 3</option>
+        <option value="4">Tahun 4</option>
+        <option value="5">Tahun 5</option>
+        <option value="6">Tahun 6</option>
+      </select>
+      <label for="activitySelect" data-i18n="activity">Aktiviti</label>
+      <select id="activitySelect"></select>
+      <div id="scopeNote"></div>
+      <div id="tipBox"><span aria-hidden="true"></span><span></span></div>
     </div>
   </div>
 
-  <footer class="forest-footer" aria-hidden="true" hidden><img src="assets/forest-footer.png" alt=""></footer>
+  <footer class="forest-footer" aria-hidden="true" hidden></footer>
 
   <dialog id="teacherDialog" class="teacher-dialog">
     <form method="dialog" id="teacherForm">
@@ -123,7 +116,7 @@
 
   <template id="moneyCardTemplate">
     <button type="button" class="money-card">
-      <span class="money-picture"><img alt=""><span class="contoh">CONTOH</span></span>
+      <span class="money-picture"><img alt=""><span class="contoh" aria-hidden="true">CONTOH</span></span>
       <span class="money-label"></span>
     </button>
   </template>
